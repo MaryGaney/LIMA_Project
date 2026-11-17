@@ -34,7 +34,7 @@ class IntroToGigiActivity:
         print("   IU Bloomington - Department of Informatics (HRI) ")
         print("====================================================")
         
-        self.gigi = Character(character_name="fuzzy", wakeup=True, activity="Intro to Gigi")
+        self.gigi = Character(wakeup=True, activity="Intro to Gigi")
         self.running = True
         self.stop_event = threading.Event()
         self.start_time = None

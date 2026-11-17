@@ -1,0 +1,28 @@
+{
+  "id": "first_meeting",
+  "title": "Getting to know you (first check-in)",
+  "description": "A first one-on-one: classes, interests, and how the student is settling in.",
+  "steps": [
+    {"type": "say", "text": "It's nice to meet you, {name}. I'd love to learn a little about you so I can be more helpful."},
+    {"type": "ask", "text": "What classes are you taking this semester?", "kind": "list", "save_as": "classes",
+     "acks": ["Thanks! That sounds like a full schedule.", "Got it, thanks for sharing."]},
+    {"type": "ask", "text": "What are you studying, or thinking about studying?", "kind": "text", "save_as": "major",
+     "acks": ["That's a great area.", "Nice, thanks for telling me."]},
+    {"type": "ask", "text": "What do you like to do for fun?", "kind": "list", "save_as": "hobbies",
+     "acks": ["That sounds fun!", "Cool, I'll remember that."]},
+    {"type": "ask", "text": "On a scale of one to five, how settled in do you feel at IU so far?", "kind": "scale", "save_as": "settled_rating",
+     "branches": {
+       "low": [
+         {"type": "ask", "text": "Thanks for being honest. What has been the hardest part of the change?", "kind": "text", "save_as": "hardest_change",
+          "acks": ["That makes a lot of sense. A lot of first-year students feel that way."]},
+         {"type": "say", "text": "Your Peer Mentor has been through this too, and they're a great person to talk with about it. I'll let them know you might like to chat."},
+         {"type": "flag", "level": "followup", "reason": "Student rated feeling settled in as low on first check-in."}
+       ],
+       "mid": [{"type": "say", "text": "That's really common in the first few weeks. It usually gets easier."}],
+       "high": [{"type": "say", "text": "That's great to hear!"}]
+     }},
+    {"type": "ask", "text": "Is there anything you're looking forward to this semester?", "kind": "text", "save_as": "looking_forward",
+     "acks": ["That sounds exciting.", "I hope it goes great."]},
+    {"type": "events"}
+  ]
+}

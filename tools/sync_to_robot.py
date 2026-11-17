@@ -56,6 +56,8 @@ def main():
         copy_dir(LOCAL_ROOT / "docs", f"{REMOTE_BASE}/docs")
     copy_file(LOCAL_ROOT / "pyproject.toml", f"{REMOTE_BASE}/pyproject.toml")
     copy_file(LOCAL_ROOT / "BUG_LOG.md", f"{REMOTE_BASE}/BUG_LOG.md")
+    if (LOCAL_ROOT / "tools").exists():
+        copy_dir(LOCAL_ROOT / "tools", f"{REMOTE_BASE}/tools")
 
     # 2. Sync restored and custom activity plans into Assets
     assets_to_sync = [
@@ -65,12 +67,25 @@ def main():
         "activity_plan_storytelling",
         "custom_interaction_greeter",
         "custom_interaction_guessing_game",
+        "mentor",  # LIMA check-in scripts and mentor_config.json
     ]
     for asset in assets_to_sync:
         local_asset_dir = LOCAL_ROOT / "Assets" / asset
         if local_asset_dir.exists():
             remote_asset_dir = f"{REMOTE_BASE}/Assets/{asset}"
             copy_dir(local_asset_dir, remote_asset_dir)
+
+    # 2b. LIMA face frames (sprite slices are regenerated on the robot at first start)
+    for frame in sorted((LOCAL_ROOT / "Assets" / "face").glob("lima_face.*.png")):
+        copy_file(frame, f"{REMOTE_BASE}/Assets/face/{frame.name}")
+
+    # 2c. LIMA voice: install Piper and the default voice on the robot if missing (needs internet; non-fatal)
+    print("[*] Ensuring Piper TTS and the LIMA voice are installed on the robot...")
+    py = f"{REMOTE_BASE}/.venv/bin/python"
+    code, out, err = run_remote(
+        f"cd {REMOTE_BASE} && ({py} -c 'import piper' 2>/dev/null || {py} -m pip install 'piper-tts>=1.3') && "
+        f"(test -f Resources/piper/en_US-sam-medium.onnx || {py} tools/download_voices.py)")
+    print(f"Piper voice: {'OK' if code == 0 else 'NOT INSTALLED (robot will use the legacy voice)'} {err.strip()[-200:]}")
 
     # 3. Ensure permissions and X11 access for root
     print("[*] Updating X11 authorization and script permissions on robot...")

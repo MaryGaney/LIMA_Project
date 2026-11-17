@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ s.preferred_name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('students') }}">&larr; Students</a></p>
+<h1>{{ s.preferred_name }}</h1>
+<form method="post" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="grid">
+    <div><label for="preferred_name">Preferred name</label><input type="text" id="preferred_name" name="preferred_name" value="{{ s.preferred_name }}"></div>
+    <div><label for="pronouns">Pronouns</label><input type="text" id="pronouns" name="pronouns" value="{{ s.pronouns }}"></div>
+    <div><label>IU username</label><input type="text" value="{{ s.iu_username or '' }}" disabled></div>
+    <div><label for="mentor_id">Peer Mentor</label>
+      <select id="mentor_id" name="mentor_id" {{ 'disabled' if user.role == 'mentor' }}>
+        <option value="">Unassigned</option>
+        {% for m in mentors %}<option value="{{ m.id }}" {{ 'selected' if m.id == s.mentor_id }}>{{ m.display_name }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <h2>What LIMA remembers</h2>
+  <p class="muted">LIMA uses these to greet the student and ask follow-up questions next time.</p>
+  <div class="grid">
+    <div><label for="classes">Classes (comma separated)</label><input type="text" id="classes" name="classes" value="{{ (s.profile.classes or [])|join(', ') }}"></div>
+    <div><label for="hobbies">Hobbies (comma separated)</label><input type="text" id="hobbies" name="hobbies" value="{{ (s.profile.hobbies or [])|join(', ') }}"></div>
+    <div><label for="major">Major / interests</label><input type="text" id="major" name="major" value="{{ s.profile.major or '' }}"></div>
+    <div><label for="looking_forward">Looking forward to</label><input type="text" id="looking_forward" name="looking_forward" value="{{ s.profile.looking_forward or '' }}"></div>
+    <div><label for="event_preference">Event preference</label><input type="text" id="event_preference" name="event_preference" value="{{ s.profile.event_preference or '' }}"></div>
+  </div>
+  <p class="muted">Preferences: input {{ s.prefs.input_mode or 'talk' }}, speech speed {{ s.prefs.speech_rate or 1.0 }}{{ ', voice muted' if s.prefs.muted }}</p>
+  <label for="staff_notes">Staff notes (never spoken by LIMA)</label>
+  <textarea id="staff_notes" name="staff_notes" rows="3">{{ s.staff_notes }}</textarea>
+  <p><button>Save profile</button></p>
+</form>
+
+<div class="card">
+  <h2 style="margin-top:0">Check-in history</h2>
+  <table>
+    <tr><th>When</th><th>Check-in</th><th>Flag</th><th>Transcript</th></tr>
+    {% for h in history %}
+    <tr><td>{{ fmt_time(h.created) }}</td><td>{{ h.flow.replace('_',' ') }}</td>
+        <td>{% if h.flag_level != 'none' %}<span class="badge {{ h.flag_level }}">{{ h.flag_level }}</span>{% endif %}</td>
+        <td><a href="{{ url_for('conversation', sid=h.id) }}">{{ 'deleted' if h.transcript_deleted else 'review' }}</a></td></tr>
+    {% else %}<tr><td colspan="4" class="muted">None.</td></tr>{% endfor %}
+  </table>
+</div>
+
+{% if user.role != 'mentor' %}
+<form method="post" class="card" onsubmit="return confirm('Delete this student profile and all their check-in records? This cannot be undone.')">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2 style="margin-top:0">Delete profile</h2>
+  <p class="muted">Use when a student asks LIMA to forget them.</p>
+  <button class="danger" name="action" value="delete">Delete profile</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -146,7 +146,7 @@ def play_story_game():
         return
         
     # Initialize character
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="StoryQuest")
+    gigi = Character(wakeup=True, activity="StoryQuest")
     time.sleep(2)
     
     try:

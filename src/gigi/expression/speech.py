@@ -103,7 +103,21 @@ else:
     ESPEAK_PATH     = "/usr/bin/espeak-ng"
     ESPEAK_LIBRARY  = None
 
-if TTS_MODEL == "nix":
+# LIMA voice settings can switch the engine to Piper (see gigi/core/voice_settings.py)
+from gigi.core.config import DATA_DIR
+from gigi.core.voice_settings import (
+    load_voice_settings, resolve_engine, piper_model_path, voice_tag, SETTINGS_PATH,
+)
+LEGACY_TTS_MODEL = TTS_MODEL
+TTS_MODEL = resolve_engine(load_voice_settings(), LEGACY_TTS_MODEL)
+SPEECH_CACHE_DIR = DATA_DIR / "speech_cache"
+
+if TTS_MODEL == "piper":
+    from piper import PiperVoice
+    from piper.config import SynthesisConfig
+    TTS_SAMPLE_RATE = 22050
+
+elif TTS_MODEL == "nix":
     from gigi.core.config import RESOURCES_DIR
     _resources_dir = str(RESOURCES_DIR)
     if _resources_dir not in sys.path:
@@ -147,9 +161,14 @@ class Speech():
         self.audio_objects = {}
         self.recorded_audio = {}
         self.keep_record    = True
-        if os.path.exists(recorded_speech_filename):
+        self.engine = TTS_MODEL
+        self.voice_settings = load_voice_settings()
+        self._settings_mtime = self._settings_file_mtime()
+        self.voice_tag = voice_tag(self.voice_settings, self.engine)
+        self.recorded_index_path = self._index_path()
+        if os.path.exists(self.recorded_index_path):
             try:
-                with open(recorded_speech_filename, "r", encoding="utf-8") as f:
+                with open(self.recorded_index_path, "r", encoding="utf-8") as f:
                     self.recorded_audio = json.load(f)
             except Exception:
                 self.recorded_audio = {}
@@ -186,6 +205,8 @@ class Speech():
                 from gigi.core.config import RESOURCES_DIR
                 _model_dir = str(RESOURCES_DIR / 'nix' / 'models')
                 self.model = NixTTSInference(model_dir=_model_dir)
+            elif TTS_MODEL == "piper":
+                self._load_piper()
             else:
                 self.model = None
 
@@ -195,6 +216,8 @@ class Speech():
             else:
                 self.speaker = lang_entry
             self.wav_sr = lanugage_speakers[self.languages[0]][2]
+            if TTS_MODEL == "piper":
+                self.wav_sr = self.model.config.sample_rate
 
         else:
             if MULTI:
@@ -258,20 +281,101 @@ class Speech():
     # ── Activity helpers ──────────────────────────────────────────────────────
     def set_activity(self, activity_name):
         self.activity = activity_name
-        if self.activity:
-            self.activity_speech_path = base_assets_path + self.activity + "/speech/"
+        if self._uses_legacy_cache():
+            # Original behavior: cached clips live with the activity's assets.
+            self.cache_key = self.activity
+            if self.activity:
+                self.activity_speech_path = base_assets_path + self.activity + "/speech/"
+            else:
+                self.activity_speech_path = recorded_speech_path
         else:
-            self.activity_speech_path = recorded_speech_path
+            # New voices, rates, or pitches get their own git-ignored cache so an old
+            # recording in a different voice is never replayed.
+            self.cache_key = f"{self.activity}@{self.voice_tag}"
+            self.activity_speech_path = str(
+                SPEECH_CACHE_DIR / self.voice_tag / (self.activity or "_shared")) + "/"
         if not os.path.exists(self.activity_speech_path):
             os.makedirs(self.activity_speech_path)
-        if self.activity not in self.recorded_audio:
-            self.recorded_audio[self.activity] = {}
+        if self.cache_key not in self.recorded_audio:
+            self.recorded_audio[self.cache_key] = {}
 
     def save_recorded_audio(self):
-        if not os.path.exists(recorded_speech_path):
-            os.makedirs(recorded_speech_path)
-        with open(recorded_speech_filename, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(self.recorded_index_path), exist_ok=True)
+        with open(self.recorded_index_path, "w", encoding="utf-8") as f:
             json.dump(self.recorded_audio, f)
+
+    # -- Voice settings (engine, voice, rate, pitch) ---------------------------
+    def _uses_legacy_cache(self):
+        vs = self.voice_settings
+        return self.engine != "piper" and vs["rate"] == 1.0 and vs["pitch_semitones"] == 0.0
+
+    def _index_path(self):
+        if self._uses_legacy_cache():
+            return recorded_speech_filename
+        return str(SPEECH_CACHE_DIR / "index.json")
+
+    @staticmethod
+    def _settings_file_mtime():
+        try:
+            return os.path.getmtime(SETTINGS_PATH)
+        except OSError:
+            return None
+
+    def _load_piper(self):
+        model_path = piper_model_path(self.voice_settings["voice"])
+        print(f"Loading Piper voice {model_path.name} ...")
+        self.model = PiperVoice.load(str(model_path))
+        self._piper_voice_name = self.voice_settings["voice"]
+
+    def refresh_voice_settings(self):
+        """Re-read voice settings if the file changed; switch cache namespace if needed."""
+        mtime = self._settings_file_mtime()
+        if mtime == self._settings_mtime:
+            return
+        self._settings_mtime = mtime
+        new = load_voice_settings()
+        if new == self.voice_settings:
+            return
+        print(f"[Voice] Settings changed: {new}")
+        old_index = self.recorded_index_path
+        self.voice_settings = new
+        self.voice_tag = voice_tag(new, self.engine)
+        if self.engine == "piper" and new["voice"] != getattr(self, "_piper_voice_name", None):
+            if piper_model_path(new["voice"]).exists():
+                self._load_piper()
+                self.wav_sr = self.model.config.sample_rate
+            else:
+                print(f"[Voice] {new['voice']} is not installed; keeping {self._piper_voice_name}.")
+        self.recorded_index_path = self._index_path()
+        if self.recorded_index_path != old_index:
+            try:
+                with open(self.recorded_index_path, "r", encoding="utf-8") as f:
+                    self.recorded_audio = json.load(f)
+            except Exception:
+                self.recorded_audio = {}
+        self.set_activity(self.activity)
+
+    def _synthesize_piper(self, text):
+        vs = self.voice_settings
+        config = SynthesisConfig(length_scale=1.0 / vs["rate"], speaker_id=vs["speaker_id"])
+        chunks = list(self.model.synthesize(text, syn_config=config))
+        if not chunks:
+            return np.zeros(int(self.wav_sr * 0.1), dtype=np.float32)
+        return np.concatenate([c.audio_float_array for c in chunks]).astype(np.float32)
+
+    def _apply_voice_effects(self, wav):
+        """Pitch shift (all engines) and speed change (engines without native control)."""
+        vs = self.voice_settings
+        try:
+            if vs["pitch_semitones"]:
+                import librosa
+                wav = librosa.effects.pitch_shift(wav, sr=self.wav_sr, n_steps=vs["pitch_semitones"])
+            if self.engine != "piper" and vs["rate"] != 1.0:
+                import librosa
+                wav = librosa.effects.time_stretch(wav, rate=vs["rate"])
+        except Exception as e:
+            print(f"[Voice] Could not apply pitch/rate effects: {e}")
+        return wav.astype(np.float32)
 
     def save_audio_file(self, file, data):
         sf.write(file, data, self.speaker_sample_rate, subtype='PCM_16')
@@ -325,7 +429,9 @@ class Speech():
         print("Generating speech ... ", text)
 
         if len(self.languages) == 1:
-            if TTS_MODEL == "nix":
+            if TTS_MODEL == "piper":
+                wav = self._synthesize_piper(text)
+            elif TTS_MODEL == "nix":
                 c, c_length, _ = self.model.tokenizer([text])
                 wav = self.model.vocalize(c, c_length)[0, 0].astype(np.float32)
             elif TTS_MODEL == "silero" and not IS_ROBOT:
@@ -361,13 +467,14 @@ class Speech():
                     num_parts += 1
                 wav = audio.numpy()
 
+        wav = self._apply_voice_effects(wav)
         stereo_audio = np.column_stack((wav, wav))
 
         if self.keep_record:
             audio_file = self.activity_speech_path + generate_random_filename(extension="wav")
-            self.recorded_audio[self.activity] = {
-                k: v for k, v in self.recorded_audio[self.activity].items() if v != text}
-            self.recorded_audio[self.activity][audio_file] = text
+            self.recorded_audio[self.cache_key] = {
+                k: v for k, v in self.recorded_audio[self.cache_key].items() if v != text}
+            self.recorded_audio[self.cache_key][audio_file] = text
             self.save_recorded_audio()
         else:
             audio_file = "../temp/output.wav"
@@ -434,10 +541,10 @@ class Speech():
             shutil.copy(file, audio_file)
             env_file = audio_file.replace(".wav", ".npy")
             np.save(env_file, envelope)
-            self.recorded_audio[self.activity] = {
-                k: v for k, v in self.recorded_audio[self.activity].items()
+            self.recorded_audio[self.cache_key] = {
+                k: v for k, v in self.recorded_audio[self.cache_key].items()
                 if v != file.split('/')[-1]}
-            self.recorded_audio[self.activity][audio_file] = file.split('/')[-1]
+            self.recorded_audio[self.cache_key][audio_file] = file.split('/')[-1]
             self.save_recorded_audio()
         else:
             audio_file = file
@@ -449,7 +556,8 @@ class Speech():
         env_file = None
         found    = False
 
-        activity_records = self.recorded_audio.get(self.activity, {})
+        self.refresh_voice_settings()
+        activity_records = self.recorded_audio.get(self.cache_key, {})
         if text is not None:
             pre_audio_file = [k for k, v in activity_records.items() if v == text]
             if pre_audio_file:

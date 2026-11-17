@@ -23,12 +23,22 @@ from gigi.core.config import (
 )
 from gigi.expression.face_definitions import CHARACTERS, BASIC_SEQUENCES, basic_sequences, global_parts
 from gigi.expression.face_display import Face
-from gigi.expression.speech import Speech
 from gigi.expression.visemes import Viseme
-from gigi.expression.movement import Movement
-from gigi.perception.hearing import Hearing
-from gigi.perception.vision import Vision
-from gigi.perception.speaker_id import VoiceEncoderRKNN, get_speaker_encoder
+from gigi.core.config import VIRTUAL_ROBOT, DEFAULT_FACE
+if VIRTUAL_ROBOT:
+    # Software stand-ins driven by the Virtual Robot Console (docs/VIRTUAL_ROBOT.md)
+    from gigi.virtual.speech import make_speech as Speech
+    from gigi.virtual.hearing import VirtualHearing as Hearing
+    from gigi.virtual.vision import VirtualVision as Vision
+    from gigi.virtual.movement import VirtualMovement as Movement
+    VoiceEncoderRKNN = None
+    get_speaker_encoder = None
+else:
+    from gigi.expression.speech import Speech
+    from gigi.expression.movement import Movement
+    from gigi.perception.hearing import Hearing
+    from gigi.perception.vision import Vision
+    from gigi.perception.speaker_id import VoiceEncoderRKNN, get_speaker_encoder
 from gigi.core.conversation import Conversation
 from gigi.core.logger import InteractionLogger
 from gigi.hardware.calibration import load_lookat_calibration
@@ -43,9 +53,10 @@ import random
 
 
 class Character():
-    def __init__(self, character_name="fuzzy", child=False, gender='female',
+    def __init__(self, character_name=None, child=False, gender='female',
                  full_screen=True, wakeup=False, activity=None, languages=['en']):
         print("Initializing character ...")
+        character_name = character_name or DEFAULT_FACE
         if HAS_FACE:
             self.face = Face(character=character_name, full_screen=IS_ROBOT and full_screen)
             if wakeup:
@@ -104,7 +115,7 @@ class Character():
         self.show_camera_feed = True
 
         self.lookat_calibration = None
-        if self.face and self.movement and self.vision:
+        if self.face and self.movement and self.vision and not VIRTUAL_ROBOT:
             try:
                 cal = load_lookat_calibration()
                 if cal:
@@ -131,7 +142,14 @@ class Character():
         
         self.use_npu_speaker = USE_NPU_SPEAKER
         
-        if HAS_HEARING:
+        if VIRTUAL_ROBOT:
+            # Speaker identification is not simulated; attach the console mirrors instead.
+            from gigi.virtual.llm import install_virtual_llm
+            install_virtual_llm(self.conversation)
+            if self.face:
+                from gigi.virtual.face_mirror import start_face_mirror
+                start_face_mirror(self.face)
+        elif HAS_HEARING:
             try:
                 try:
                     from gigi.perception.speaker_id import SpeakerDatabase

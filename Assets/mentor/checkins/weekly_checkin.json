@@ -1,0 +1,31 @@
+{
+  "id": "weekly_checkin",
+  "title": "Weekly check-in",
+  "description": "A short weekly check-in that uses what LIMA remembers about the student.",
+  "steps": [
+    {"type": "ask", "text": "On a scale of one to five, how has your week been?", "kind": "scale", "save_as": "week_rating",
+     "branches": {
+       "low": [
+         {"type": "ask", "text": "I'm sorry it's been a rough week. What has been the hardest part?", "kind": "text", "save_as": "week_hardest",
+          "acks": ["Thank you for telling me. That sounds hard."]},
+         {"type": "resources", "from_answer": "week_hardest"},
+         {"type": "flag", "level": "followup", "reason": "Student rated their week as low."}
+       ],
+       "mid": [{"type": "say", "text": "Thanks. Sounds like a pretty normal week, with some ups and downs."}],
+       "high": [{"type": "say", "text": "Awesome, I'm glad it's been a good week!"}]
+     }},
+    {"type": "ask", "if_profile": "classes", "text": "Last time you mentioned {profile.classes}. How are those classes going?", "kind": "text", "save_as": "classes_update",
+     "acks": ["Thanks for the update.", "Good to know."]},
+    {"type": "ask", "unless_profile": "classes", "text": "How are your classes going so far?", "kind": "text", "save_as": "classes_update",
+     "acks": ["Thanks for the update."]},
+    {"type": "ask", "if_profile": "hobbies", "text": "Have you had any time for {profile.hobbies} this week?", "kind": "yesno", "save_as": "hobby_time",
+     "branches": {
+       "yes": [{"type": "say", "text": "Nice! Making time for things you enjoy really helps."}],
+       "no": [{"type": "say", "text": "That's okay. Even twenty minutes for something you enjoy can make a difference."}]
+     }},
+    {"type": "ask", "text": "How have you been sleeping lately?", "kind": "text", "save_as": "sleep",
+     "acks": ["Thanks. Sleep makes a big difference for how everything else feels."]},
+    {"type": "ask", "text": "Is there anything you'd like your Peer Mentor to know or help with?", "kind": "text", "save_as": "for_mentor", "for_mentor": true,
+     "acks": ["Got it. I'll pass that along."]}
+  ]
+}

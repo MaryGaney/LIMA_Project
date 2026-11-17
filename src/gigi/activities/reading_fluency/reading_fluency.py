@@ -39,7 +39,7 @@ def play_reading_fluency(show_karaoke=True, run_hello=True, run_selection=True, 
     print("====================================================")
     
     # Initialize character with wakeup=True to show face and move to home position
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="ReadingFluency")
+    gigi = Character(wakeup=True, activity="ReadingFluency")
     
     word_bank = {}
     word_bank_file = None

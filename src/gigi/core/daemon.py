@@ -306,6 +306,15 @@ def scan_files():
     return demos, scripts, zhennan
 
 
+def _mentor_checkins():
+    try:
+        from gigi.mentor.content import list_flows
+        return [{"name": f"mentor_checkin_{f['id']}", "title": f["title"]} for f in list_flows()]
+    except Exception as e:
+        print(f"[Daemon] Could not list LIMA check-ins: {e}")
+        return []
+
+
 def find_script(target_name):
     """
     Looks up an activity, script, demo, or interaction runner by its name or filename.
@@ -317,6 +326,14 @@ def find_script(target_name):
         if teacher_script_key in zhennan:
             info = dict(zhennan[teacher_script_key])
             info["args"] = [target_name]
+            info["filename"] = f"{info['filename']} ({target_name})"
+            return info, None
+
+    if target_name.startswith("mentor_checkin_"):
+        # LIMA one-on-one check-ins: Assets/mentor/checkins/<id>.json run by activities/mentor/mentor_checkin.py
+        if "mentor_checkin" in demos:
+            info = dict(demos["mentor_checkin"])
+            info["args"] = [target_name[len("mentor_checkin_"):]]
             info["filename"] = f"{info['filename']} ({target_name})"
             return info, None
 
@@ -1106,6 +1123,7 @@ def process_command_line(line):
             "available_zhennan": sorted(list(set([info["filename"] for info in zhennan.values()]))),
             "available_activity_plans": plans,
             "available_custom_interactions": interactions,
+            "available_mentor_checkins": _mentor_checkins(),
             "categorized_activities": categorized_activities,
             "calibrated": is_motor_calibrated(),
             "wifi": get_wifi_status(),

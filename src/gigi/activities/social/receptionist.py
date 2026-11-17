@@ -18,7 +18,7 @@ def main():
     print("====================================================")
     
     # Initialize character with wakeup=True to enable startup look/position
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="Showcase Receptionist")
+    gigi = Character(wakeup=True, activity="Showcase Receptionist")
     gigi.show_camera_feed = True
     if gigi.face:
         gigi.face.show_camera_feed = True

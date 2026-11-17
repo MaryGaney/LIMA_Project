@@ -1,0 +1,14 @@
+{
+  "id": "resource_finder",
+  "title": "Find a campus resource",
+  "description": "The student asks a question; LIMA points to the right resource or to a person.",
+  "steps": [
+    {"type": "ask", "text": "What can I help you find today?", "kind": "text", "save_as": "resource_question"},
+    {"type": "resources", "from_answer": "resource_question"},
+    {"type": "ask", "text": "Is there anything else you'd like help finding?", "kind": "yesno", "save_as": "more_help",
+     "branches": {"yes": [
+                    {"type": "ask", "text": "Sure, what else?", "kind": "text", "save_as": "resource_question_2"},
+                    {"type": "resources", "from_answer": "resource_question_2"}],
+                  "no": [{"type": "say", "text": "Okay! Your Peer Mentor is also a great person to ask."}]}}
+  ]
+}

@@ -2,9 +2,16 @@ import os
 import re
 import time
 
-from gigi.perception.vision import Vision
-from gigi.perception.hearing import Hearing
-from gigi.expression.speech import Speech
+from gigi.core.config import VIRTUAL_ROBOT
+
+if VIRTUAL_ROBOT:
+    from gigi.virtual.vision import VirtualVision as Vision
+    from gigi.virtual.hearing import VirtualHearing as Hearing
+    from gigi.virtual.speech import make_speech as Speech
+else:
+    from gigi.perception.vision import Vision
+    from gigi.perception.hearing import Hearing
+    from gigi.expression.speech import Speech
 
 
 

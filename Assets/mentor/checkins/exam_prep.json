@@ -1,0 +1,23 @@
+{
+  "id": "exam_prep",
+  "title": "Exam and study check-in",
+  "description": "For exam weeks: what's coming up, a simple study plan, and where to get help.",
+  "steps": [
+    {"type": "ask", "text": "Do you have any exams or big assignments coming up?", "kind": "text", "save_as": "upcoming_exams",
+     "acks": ["Okay, thanks. Let's think about a plan."]},
+    {"type": "ask", "text": "On a scale of one to five, how prepared do you feel?", "kind": "scale", "save_as": "prepared_rating",
+     "branches": {
+       "low": [
+         {"type": "say", "text": "That's okay, there's still time to make progress. Here's a simple plan that works for a lot of students."},
+         {"type": "say", "text": "First, list the topics the exam covers. Second, start with the ones you feel least sure about, in short blocks of about twenty-five minutes. Third, test yourself with practice problems instead of just rereading."},
+         {"type": "resources", "topics": ["tutoring"]},
+         {"type": "flag", "level": "note", "reason": "Exam stress: student feels underprepared (low priority follow-up)."}
+       ],
+       "mid": [{"type": "say", "text": "Sounds like you're on your way. Practice problems and explaining ideas out loud are great ways to find gaps."}],
+       "high": [{"type": "say", "text": "That's great. Remember to get some sleep the night before, it really helps memory."}]
+     }},
+    {"type": "ask", "text": "Would you like me to share where you can get study help?", "kind": "yesno", "save_as": "wants_resources",
+     "branches": {"yes": [{"type": "resources", "topics": ["tutoring", "advising"]}],
+                  "no": [{"type": "say", "text": "Okay! Good luck, you've got this."}]}}
+  ]
+}

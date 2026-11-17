@@ -220,7 +220,7 @@ def play_mastermind():
     print("====================================================")
     
     # Initialize character with wakeup=True to enable startup look/position
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="Mastermind")
+    gigi = Character(wakeup=True, activity="Mastermind")
     gigi.face.overlay_text = None
     time.sleep(2)  # Allow motors and modules to initialize
     

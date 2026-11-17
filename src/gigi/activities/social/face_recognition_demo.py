@@ -21,7 +21,7 @@ def main():
     print("====================================================")
     
     # Initialize character with wakeup=True to enable startup look/position
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="Face Recognition Demo")
+    gigi = Character(wakeup=True, activity="Face Recognition Demo")
     gigi.face.overlay_text = None
     time.sleep(2)  # Allow motors and modules to initialize
     

@@ -84,6 +84,10 @@ if [ -f "$PROJECT_ROOT/pyproject.toml" ]; then
   pip install -e "$PROJECT_ROOT"
 fi
 
+# LIMA voice: Piper neural TTS (runs on the RK3588 CPU) and the default voice model
+pip install -e "$PROJECT_ROOT[voice]" || echo "[!] Piper install failed; the robot will use the legacy Nix voice."
+python "$PROJECT_ROOT/tools/download_voices.py" || echo "[!] Voice download failed; rerun tools/download_voices.py when online."
+
 # CPU-only PyTorch for resource-constrained SBCs
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || true
 

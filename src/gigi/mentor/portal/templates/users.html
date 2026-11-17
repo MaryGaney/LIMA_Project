@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Accounts{% endblock %}
+{% block content %}
+<h1>Accounts</h1>
+<div class="card">
+<table>
+  <tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+  {% for u in staff %}
+  <tr><td>{{ u.username }}</td><td>{{ u.display_name }}</td><td>{{ u.role }}</td><td>{{ 'active' if u.active else 'deactivated' }}</td>
+    <td>
+      <form method="post" style="display:inline-flex;gap:6px">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ u.id }}">
+        <input type="password" name="password" placeholder="New password" aria-label="New password for {{ u.username }}" style="width:150px">
+        <button class="secondary" name="action" value="password">Reset</button>
+        <button class="secondary" name="action" value="{{ 'deactivate' if u.active else 'activate' }}">{{ 'Deactivate' if u.active else 'Activate' }}</button>
+      </form></td></tr>
+  {% endfor %}
+</table>
+</div>
+<form method="post" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2 style="margin-top:0">Add account</h2>
+  <div class="grid">
+    <div><label for="username">Username</label><input type="text" id="username" name="username" required></div>
+    <div><label for="display_name">Display name</label><input type="text" id="display_name" name="display_name" required></div>
+    <div><label for="role">Role</label><select id="role" name="role">{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></div>
+    <div><label for="password">Password (10+ characters)</label><input type="password" id="password" name="password" required minlength="10"></div>
+  </div>
+  <p><button name="action" value="add">Add account</button></p>
+  <p class="muted">Mentors see their assigned students and unassigned students. Staff see everyone and set the robot voice. Admins also manage accounts and the audit log.</p>
+</form>
+{% endblock %}

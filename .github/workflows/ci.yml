@@ -46,3 +46,5 @@ jobs:
           python -m unittest tests/test_bluetooth_compatibility.py
           python -m unittest tests/test_activity_logic.py
           python -m unittest tests/test_local_subsystems.py
+          python -m unittest tests/test_virtual_robot.py
+          python -m unittest tests/test_lima_mentor.py

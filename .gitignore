@@ -246,4 +246,8 @@ motorData_calibrated.json
 temp/
 backups/
 
-
+
+# LIMA: Piper voice models are downloaded by Setup/setup_orangepi.sh or tools/download_voices.py
+Resources/piper/
+# LIMA: face sprite slices are regenerated from Assets/face/lima_face.*.png at startup
+Assets/face/lima/

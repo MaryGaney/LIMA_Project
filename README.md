@@ -250,6 +250,37 @@ Once the calibration sequence successfully completes, `motorData_calibrated.json
 
 ---
 
+## LIMA Peer Mentor
+
+This fork adapts Gigi into **LIMA**, a robot peer mentor for the Luddy Living Learning Center:
+- a robot-like `lima` face
+- a gender-neutral Piper voice with adjustable speed
+- typed or spoken one-on-one check-ins
+- a web app where Peer Mentors and staff review check-ins, keep profile facts, and delete transcripts
+
+```powershell
+gigi lima-user add yourname --role admin   # first time
+gigi virtual                               # terminal 1
+gigi lima --virtual                        # terminal 2, then open http://127.0.0.1:5080/student
+```
+
+See [docs/LIMA_MENTOR.md](docs/LIMA_MENTOR.md).
+
+---
+
+## Virtual Robot (No Hardware Needed)
+
+Run any activity on your laptop with no robot, microphone, camera, servos, or LLM server:
+
+```powershell
+gigi virtual
+# opens http://127.0.0.1:5050
+```
+
+The **Virtual Robot Console** runs the unchanged activity code with software stand-ins: you type the student's replies, edit who the camera "sees", watch the robot's real animated face and commanded joint positions, and write the robot's replies yourself (Wizard-of-Oz) when no LLM is running. See [docs/VIRTUAL_ROBOT.md](docs/VIRTUAL_ROBOT.md) for what is and is not simulated, and [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for the path from unit tests to sessions with students.
+
+---
+
 ## Interactive Live Demonstration
 
 Experience Gigi's multimodal loop in real time right on your computer screen:
@@ -298,16 +329,20 @@ gigi verify face
 gigi verify llm
 
 # 2. Launch the Web Activity Planner (visual curriculum builder)
-gigi web --port 5000
+gigi web --host 127.0.0.1 --port 5000
 # Open http://localhost:5000 in your browser
 
 # 3. Launch interactive robot capabilities demo
 gigi demo
 
-# 4. Calibrate robot servo limits (when connected to physical robot)
+# 4. Test activities on the virtual robot (no hardware)
+gigi virtual
+gigi virtual --activity math_quest
+
+# 5. Calibrate robot servo limits (when connected to physical robot)
 gigi calibrate
 
-# 5. Start background daemon (Bluetooth RFCOMM + TCP server)
+# 6. Start background daemon (Bluetooth RFCOMM + TCP server)
 gigi start
 ```
 

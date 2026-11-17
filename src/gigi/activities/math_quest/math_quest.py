@@ -154,7 +154,7 @@ def play_math_quest():
     print("====================================================")
     
     # Initialize character
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="MathQuest")
+    gigi = Character(wakeup=True, activity="MathQuest")
     time.sleep(2)
     
     try:

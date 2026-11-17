@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Robot voice{% endblock %}
+{% block content %}
+<h1>Robot voice</h1>
+<form method="post" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if not piper %}<div class="flash error">Piper is not installed on this robot, so the legacy voice is used. Install with <code>pip install -e ".[voice]"</code> and <code>python tools/download_voices.py</code>.</div>{% endif %}
+  <div class="grid">
+    <div><label for="engine">Engine</label><select id="engine" name="engine">
+      {% for e in engines %}<option {{ 'selected' if e == current.engine }}>{{ e }}</option>{% endfor %}</select></div>
+    <div><label for="voice">Voice</label><select id="voice" name="voice">
+      {% for v in voices %}<option {{ 'selected' if v == current.voice }}>{{ v }}</option>{% endfor %}
+      {% if current.voice not in voices %}<option selected>{{ current.voice }}</option>{% endif %}</select></div>
+    <div><label for="speaker_id">Speaker number (multi-speaker voices only)</label>
+      <input type="text" id="speaker_id" name="speaker_id" value="{{ current.speaker_id if current.speaker_id is not none else '' }}" inputmode="numeric"></div>
+    <div><label for="rate">Default speed ({{ rate_range[0] }}&ndash;{{ rate_range[1] }}): <output id="rate_out">{{ current.rate }}</output>x</label>
+      <input type="range" id="rate" name="rate" min="{{ rate_range[0] }}" max="{{ rate_range[1] }}" step="0.05" value="{{ current.rate }}" oninput="rate_out.value=this.value"></div>
+    <div><label for="pitch">Pitch shift in semitones ({{ pitch_range[0] }} to {{ pitch_range[1] }}): <output id="pitch_out">{{ current.pitch_semitones }}</output></label>
+      <input type="range" id="pitch" name="pitch_semitones" min="{{ pitch_range[0] }}" max="{{ pitch_range[1] }}" step="0.5" value="{{ current.pitch_semitones }}" oninput="pitch_out.value=this.value"></div>
+  </div>
+  <p><button>Save voice</button></p>
+  <p class="muted">The default voice, <code>en_US-sam-medium</code>, comes from an open non-binary voice dataset. To compare voices by ear, run
+  <code>python tools/voice_audition.py</code> and open <code>data/voice_audition/index.html</code>. Students can change the speed for their own check-in.</p>
+</form>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Check-in with LIMA{% endblock %}
+{% block content %}
+<div class="card" style="max-width:720px;margin:0 auto">
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <h1 style="margin:0;flex:1">Check-in with LIMA</h1>
+    <span id="status" class="badge">starting&hellip;</span>
+  </div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin:10px 0">
+    <label style="color:inherit;margin:0"><input type="radio" name="mode" value="talk" {{ 'checked' if s.mode=='talk' }}> Talk</label>
+    <label style="color:inherit;margin:0"><input type="radio" name="mode" value="type" {{ 'checked' if s.mode=='type' }}> Type</label>
+    <label style="color:inherit;margin:0"><input type="checkbox" id="muted" {{ 'checked' if s.muted }}> Mute voice</label>
+    <label for="rate" style="margin:0">Speed <output id="rate_out">{{ s.rate }}</output>x</label>
+    <input type="range" id="rate" min="{{ rate_range[0] }}" max="{{ rate_range[1] }}" step="0.05" value="{{ s.rate }}" style="width:160px">
+  </div>
+  <div id="chat" aria-live="polite" style="min-height:240px;max-height:55vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:10px"></div>
+  <form id="send" style="display:flex;gap:8px;margin-top:10px">
+    <input type="text" id="text" placeholder="Type your answer (or 'skip' / 'stop')" autocomplete="off" aria-label="Your message">
+    <button>Send</button>
+  </form>
+  <p style="display:flex;gap:10px;margin-top:10px">
+    <button class="secondary" id="end">End check-in</button>
+    <a class="btn secondary" href="{{ url_for('kiosk_start') }}">Done</a>
+  </p>
+  <p class="muted">In Talk mode you can still type here. Your chat disappears from this screen a minute after the check-in ends.</p>
+</div>
+<script>
+const token = {{ s.token|tojson }};
+const api = (p, body) => fetch(`/student/api/${token}/${p}`, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {});
+let after = 0, shown = new Set();
+const chat = document.getElementById("chat");
+function add(m) {
+  if (shown.has(m.id)) return; shown.add(m.id); after = Math.max(after, m.id);
+  const d = document.createElement("div"); d.className = "msg " + m.speaker;
+  const w = document.createElement("span"); w.className = "who"; w.textContent = m.speaker === "robot" ? "LIMA" : "You";
+  d.appendChild(w); d.appendChild(document.createTextNode(m.text)); chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+async function poll() {
+  try {
+    const d = await (await api(`messages?after=${after}`)).json();
+    d.messages.forEach(add);
+    const label = {pending: "starting…", active: "in progress", ended: "finished", declined: "ended"}[d.status] || d.status;
+    document.getElementById("status").textContent = label;
+    if ((d.status === "ended" || d.status === "declined") && !d.messages.length && after === 0) chat.textContent = "This check-in has ended.";
+  } catch (e) {}
+  setTimeout(poll, 800);
+}
+document.getElementById("send").onsubmit = async (ev) => {
+  ev.preventDefault(); const t = document.getElementById("text"); if (!t.value.trim()) return;
+  await api("say", {text: t.value}); t.value = "";
+};
+document.querySelectorAll("input[name=mode]").forEach(r => r.onchange = () => api("settings", {mode: r.value}));
+document.getElementById("muted").onchange = (e) => api("settings", {muted: e.target.checked});
+const rate = document.getElementById("rate");
+rate.oninput = () => document.getElementById("rate_out").value = rate.value;
+rate.onchange = () => api("settings", {rate: Number(rate.value)});
+document.getElementById("end").onclick = () => api("end", {});
+poll();
+</script>
+{% endblock %}

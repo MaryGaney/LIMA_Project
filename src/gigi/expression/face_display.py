@@ -29,9 +29,12 @@ import threading
 
 
 class Face():
-    def __init__(self, character="fuzzy", full_screen=True, activity=None):
+    def __init__(self, character=None, full_screen=True, activity=None):
         print("Initiliazing face ...")
         self.IMAGE_OPTION = IMAGE_OPTION
+        if character is None:
+            from gigi.core.config import DEFAULT_FACE
+            character = DEFAULT_FACE
         self.character = characters[character]
         self.show_face = True
         self.face_running = True
@@ -209,9 +212,12 @@ class Face():
                     file_name = self.characterfolder_path + part + "/" + part_data[0]
                     file_name = f"{file_name}_slice_{i}.png"
 
-                    if save:
+                    source_file = f"{image_name}{i:03}.png"
+                    stale = (not os.path.exists(file_name)
+                             or os.path.getmtime(source_file) > os.path.getmtime(file_name))
+                    if save and stale:
                         # Open the image
-                        image = Image.open(f"{image_name}{i:03}.png")
+                        image = Image.open(source_file)
                         # Get the dimensions of the image
                         width, height = image.size
                         sliced_image = image.crop((0, math.floor(height * part_slice[0]), width, math.floor(height * part_slice[1])))

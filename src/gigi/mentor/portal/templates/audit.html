@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="muted">Who viewed or deleted what, and when. Transcript content is never written here.</p>
+<div class="card"><table>
+  <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th></tr>
+  {% for r in rows %}<tr><td>{{ fmt_time(r.t) }}</td><td>{{ r.actor }}</td><td>{{ r.action }}</td><td>{{ r.target }}</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -11,7 +11,7 @@ def test_follow_face():
     print("Initializing Gigi Character...")
     
     # Initialize character (select fuzzy, wake up motors, set activity)
-    gigi = Character(character_name="fuzzy", wakeup=True, activity="FollowFaceTest")
+    gigi = Character(wakeup=True, activity="FollowFaceTest")
     
     # Check if we have vision and movement modules enabled
     if not gigi.vision:

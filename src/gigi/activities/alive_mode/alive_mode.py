@@ -23,7 +23,7 @@ def main():
     calibrated = is_motor_calibrated()
 
     # Initialize character with wakeup=calibrated to avoid homing uncalibrated motors
-    gigi = Character(character_name="fuzzy", wakeup=calibrated, activity="Showcase Alive")
+    gigi = Character(wakeup=calibrated, activity="Showcase Alive")
     gigi.face.overlay_text = None
     time.sleep(1)  # Allow modules to initialize
     

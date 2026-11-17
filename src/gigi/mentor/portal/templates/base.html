@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}LIMA{% endblock %}</title>
+<style>
+  :root { --plum:#1e1434; --purple:#6b3fa0; --purple-2:#8e5fd0; --mint:#96f4da; --ink:#1d1a24; --muted:#6c6680;
+          --bg:#f6f3fb; --card:#fff; --line:#e3dcef; --urgent:#b3261e; --follow:#b06000; --note:#3d5a99; --ok:#1e7d4f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#ece8f4; --muted:#a59fb8; --bg:#15111f; --card:#1f1930; --line:#342a4a; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--plum); color:#fff; padding:10px 20px; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+  header .brand { font-weight:700; letter-spacing:.06em; color:var(--mint); text-decoration:none; font-size:18px; }
+  header nav a { color:#e9e2f7; text-decoration:none; margin-right:14px; }
+  header nav a:hover { color:var(--mint); }
+  header form { margin-left:auto; }
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:22px; margin:6px 0 16px; } h2 { font-size:17px; margin:20px 0 10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  a { color:var(--purple-2); }
+  .btn, button { font:inherit; background:var(--purple); color:#fff; border:0; border-radius:8px; padding:7px 14px; cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn.secondary, button.secondary { background:transparent; color:var(--purple-2); border:1px solid var(--purple-2); }
+  button.danger { background:var(--urgent); }
+  input[type=text], input[type=password], select, textarea { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:7px 10px; width:100%; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  .badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:12px; font-weight:600; color:#fff; background:var(--muted); }
+  .badge.urgent { background:var(--urgent); } .badge.followup { background:var(--follow); } .badge.note { background:var(--note); }
+  .flash { padding:10px 14px; border-radius:8px; margin-bottom:12px; } .flash.error { background:#fde7e7; color:#7a1612; } .flash.ok { background:#e3f5ec; color:#14532d; }
+  .muted { color:var(--muted); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  .msg { padding:8px 12px; border-radius:10px; margin:6px 0; max-width:85%; white-space:pre-wrap; }
+  .msg.robot { background:#ece4f8; color:#2e1c4f; } .msg.student { background:#dff7ef; color:#0f4a38; margin-left:auto; }
+  .msg .who { font-size:11px; opacity:.7; display:block; }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header>
+  <a class="brand" href="{{ url_for('dashboard') if user else url_for('kiosk_start') }}">LIMA</a>
+  {% if user %}
+  <nav>
+    <a href="{{ url_for('dashboard') }}">Check-ins</a>
+    <a href="{{ url_for('students') }}">Students</a>
+    {% if user.role in ('staff','admin') %}<a href="{{ url_for('voice') }}">Robot voice</a>{% endif %}
+    {% if user.role == 'admin' %}<a href="{{ url_for('users') }}">Accounts</a><a href="{{ url_for('audit') }}">Audit log</a>{% endif %}
+  </nav>
+  <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <span class="muted" style="color:#cfc6e3">{{ user.display_name }} ({{ user.role }})</span>
+    <button class="secondary" style="color:var(--mint);border-color:var(--mint);margin-left:8px">Log out</button></form>
+  {% endif %}
+</header>
+<main>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

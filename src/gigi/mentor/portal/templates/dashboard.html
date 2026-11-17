@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}LIMA check-ins{% endblock %}
+{% block content %}
+<h1>Check-ins to review</h1>
+<p class="muted">Urgent and follow-up check-ins are listed first. Reviewing a check-in saves what you choose to the
+student's profile and deletes the transcript from the robot. Unreviewed transcripts are deleted automatically after
+{{ retention }} days.</p>
+{% set urgent = sessions | selectattr('flag_level', 'equalto', 'urgent') | list %}
+{% if urgent %}
+<div class="card" style="border-color:var(--urgent)">
+  <strong style="color:var(--urgent)">{{ urgent|length }} urgent check-in{{ 's' if urgent|length != 1 }}.</strong>
+  Follow the LLC referral process now. The robot gave crisis resources and told the student staff would check in.
+</div>
+{% endif %}
+<div class="card">
+{% if sessions %}
+<table>
+  <tr><th>Flag</th><th>Student</th><th>Check-in</th><th>When</th><th>Status</th><th></th></tr>
+  {% for s in sessions %}
+  <tr>
+    <td>{% if s.flag_level != 'none' %}<span class="badge {{ s.flag_level }}">{{ s.flag_level }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+    <td>{{ s.preferred_name or 'Unknown' }}</td>
+    <td>{{ s.flow.replace('_',' ') }}</td>
+    <td>{{ fmt_time(s.created) }}</td>
+    <td>{{ s.status }}{% if s.consent == 0 %} (declined){% endif %}</td>
+    <td><a class="btn secondary" href="{{ url_for('conversation', sid=s.id) }}">Review</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nothing to review. 🎉</p>
+{% endif %}
+</div>
+{% endblock %}

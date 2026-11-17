@@ -1,0 +1,19 @@
+{
+  "id": "belonging",
+  "title": "Finding your people",
+  "description": "Social connection: friends, community, and low-pressure ways to meet people.",
+  "steps": [
+    {"type": "ask", "text": "How has it been meeting people at IU so far?", "kind": "text", "save_as": "meeting_people",
+     "acks": ["Thanks for sharing that. It takes time for everyone."]},
+    {"type": "ask", "text": "Do you prefer big events, or smaller and quieter hangouts?", "kind": "text", "save_as": "event_preference",
+     "acks": ["Good to know. Both are great ways to meet people."]},
+    {"type": "ask", "text": "Are there any clubs or interests you'd like to find people for?", "kind": "list", "save_as": "hobbies",
+     "acks": ["Nice. There are probably others who'd love to do that with you."]},
+    {"type": "events"},
+    {"type": "ask", "text": "Would you like your Peer Mentor to help connect you with a group or event?", "kind": "yesno", "save_as": "wants_connection",
+     "branches": {"yes": [
+                    {"type": "say", "text": "Great, I'll let them know."},
+                    {"type": "flag", "level": "note", "reason": "Student would like help connecting with a group or event."}],
+                  "no": [{"type": "say", "text": "No problem. The offer is always open."}]}}
+  ]
+}

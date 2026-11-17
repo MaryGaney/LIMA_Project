@@ -26,7 +26,7 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from gigi.core.config import ASSETS_DIR
+from gigi.core.config import ASSETS_DIR, DEFAULT_FACE
 from gigi.expression.face_display import Face
 from gigi.expression.speech import Speech
 from gigi.perception.whisper_helper import clean_transcript
@@ -49,7 +49,7 @@ def run_interactive_session():
     print("\n[Step 1/4] Initializing Face Display (Windowed mode)...")
     
     # Initialize Face in windowed mode
-    face = Face(character="fuzzy", full_screen=False)
+    face = Face(character=DEFAULT_FACE, full_screen=False)
     
     print("[Step 2/4] Initializing Camera Feed (Port 0)...")
     cap = cv2.VideoCapture(0)

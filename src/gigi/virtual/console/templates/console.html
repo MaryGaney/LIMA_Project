@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gigi Virtual Robot</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --ink: #1d2430; --muted: #667085; --line: #d9dee7;
+    --robot: #e8f0fe; --robot-ink: #1a3d7c; --student: #e9f7ef; --student-ink: #17603a;
+    --wizard: #fff4e0; --wizard-ink: #7a4a00; --accent: #2f6fde; --danger: #c0392b; --ok: #1e8e3e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --panel: #1d2128; --ink: #e6e9ef; --muted: #98a2b3; --line: #2e3440;
+      --robot: #1d2b45; --robot-ink: #bcd2ff; --student: #183325; --student-ink: #b6ecc9;
+      --wizard: #3a2c12; --wizard-ink: #ffd99a; --accent: #6b9bff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  .pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; background: var(--line); }
+  .pill.running { background: var(--ok); color: #fff; }
+  select, input[type=text], textarea, button { font: inherit; color: inherit; }
+  select, input[type=text], textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  button.secondary { background: var(--line); color: var(--ink); }
+  button.danger { background: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 12px; padding: 12px 16px; height: calc(100vh - 58px); }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; height: auto; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; min-height: 0; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  #face-wrap { position: relative; background: #000; border-radius: 8px; aspect-ratio: 4/3; display: grid; place-items: center; overflow: hidden; }
+  #face-img { max-width: 100%; max-height: 100%; }
+  #face-empty { color: #888; font-size: 12px; text-align: center; padding: 10px; }
+  #listen-badge { position: absolute; top: 8px; right: 8px; background: var(--ok); color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 12px; display: none; }
+  #transcript { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+  .msg { max-width: 80%; padding: 7px 10px; border-radius: 10px; white-space: pre-wrap; }
+  .msg .who { font-size: 11px; opacity: .75; display: block; margin-bottom: 2px; }
+  .msg.robot { background: var(--robot); color: var(--robot-ink); align-self: flex-start; }
+  .msg.student { background: var(--student); color: var(--student-ink); align-self: flex-end; }
+  .msg.wizard { outline: 2px dashed var(--wizard-ink); }
+  .msg.system { align-self: center; background: transparent; color: var(--muted); font-size: 12px; max-width: 95%; text-align: center; }
+  #input-row { display: flex; gap: 6px; margin-top: 8px; }
+  #student-input { flex: 1; }
+  #listen-hint { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 18px; }
+  #listen-hint.active { color: var(--ok); font-weight: 600; }
+  #wizard { display: none; background: var(--wizard); color: var(--wizard-ink); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  #wizard textarea { width: 100%; min-height: 54px; margin: 6px 0; }
+  #wizard details { font-size: 12px; max-height: 160px; overflow: auto; white-space: pre-wrap; }
+  .person { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .person label { font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+  .person .full { grid-column: 1 / -1; }
+  .scroll { overflow-y: auto; min-height: 0; }
+  #presets button { margin: 0 6px 6px 0; font-size: 12px; padding: 4px 8px; }
+  #log { font: 11px/1.35 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-y: auto; max-height: 180px; color: var(--muted); }
+  .joint-row { display: grid; grid-template-columns: 96px 1fr 44px; align-items: center; gap: 6px; font-size: 12px; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; position: relative; }
+  .bar span { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+  .bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  .note { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gigi Virtual Robot</h1>
+  <span id="status" class="pill">idle</span>
+  <select id="activity" aria-label="Activity"></select>
+  <button id="run-btn">Run</button>
+  <button id="stop-btn" class="danger">Stop</button>
+  <label class="note">LLM
+    <select id="llm-mode" title="auto: try the configured LLM, fall back to you; woz: you write every reply">
+      <option value="auto">auto (LLM, else wizard)</option>
+      <option value="woz">wizard-of-oz only</option>
+      <option value="real">real LLM only</option>
+    </select>
+  </label>
+  <label class="note">Speech
+    <select id="speech-mode"><option value="captions">captions</option><option value="real">real TTS</option></select>
+  </label>
+  <label class="note"><input type="checkbox" id="voice"> voice captions in browser</label>
+  <span style="flex:1"></span>
+  <button class="secondary" id="export-btn">Export transcript</button>
+  <button class="secondary" id="clear-btn">Clear</button>
+</header>
+
+<main>
+  <div class="col">
+    <section class="panel">
+      <h2>Face (mirrored from the real renderer)</h2>
+      <div id="face-wrap">
+        <img id="face-img" alt="Robot face" hidden>
+        <div id="face-empty">Start an activity to see the robot's face.</div>
+        <span id="listen-badge">listening</span>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Joints (commanded positions)</h2>
+      <svg id="body" viewBox="0 0 200 150" style="width:100%;max-height:170px"></svg>
+      <div id="joints"></div>
+      <p class="note">Virtual joint model: shows what the code commanded. Not a servo or calibration simulation.</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Conversation</h2>
+    <div id="transcript"></div>
+    <div id="wizard">
+      <strong>Wizard-of-Oz:</strong> the robot needs a reply. Write what the robot should say.
+      <details><summary>Show the prompt the LLM would have received</summary><div id="wizard-prompt"></div></details>
+      <textarea id="wizard-reply" placeholder="Robot reply..."></textarea>
+      <button id="wizard-send">Send as robot</button>
+    </div>
+    <div id="listen-hint"></div>
+    <div id="input-row">
+      <input type="text" id="student-input" placeholder="Type what the student says, then Enter" autocomplete="off">
+      <button id="send-btn">Send</button>
+      <button class="secondary" id="silent-btn" title="Simulate the student not answering">Stay silent</button>
+    </div>
+  </section>
+
+  <div class="col">
+    <section class="panel scroll" style="flex:1">
+      <h2>Room (what the camera "sees")</h2>
+      <div id="people"></div>
+      <button class="secondary" id="add-person">+ Add person</button>
+      <h2 style="margin-top:14px">Scenario presets</h2>
+      <div id="presets"></div>
+      <p class="note">Presets set the room and pre-fill the student's line. Use fictional names only.</p>
+    </section>
+    <section class="panel">
+      <h2>Robot process log</h2>
+      <div id="log"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = (path, opts = {}) => fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts));
+let lastEvent = 0, faceVersion = -1, scene = { people: [] }, pendingLLM = null, sceneDirty = false;
+
+const EMOTIONS = ["neutral", "happy", "sad", "angry", "fear", "surprise", "Unknown"];
+const GESTURES = ["Unknown", "Thumbs Up", "Thumbs Down"];
+const JOINTS = ["torso", "neck", "right_shoulder", "left_shoulder", "right_elbow", "left_elbow"];
+
+// Scenarios from the LIMA design-research interviews. Fictional student, test only.
+const PRESETS = [
+  { label: "Exam tomorrow, behind", emotion: "fear", note: "11pm before first intro to programming exam",
+    text: "I'm really behind and my intro to programming exam is tomorrow. I don't know how to study." },
+  { label: "Drop a class?", emotion: "neutral", note: "knows drop deadline matters; scholarship rules unknown to robot",
+    text: "How do I drop a class? Will it affect my scholarship?" },
+  { label: "Eats alone", emotion: "sad", note: "has not made friends yet",
+    text: "I haven't really made any friends yet. I usually eat alone." },
+  { label: "Just 'fine'", emotion: "sad", note: "slumped, looking at phone, short answers", text: "fine" },
+  { label: "Prefers typing", emotion: "neutral", note: "eye contact and loud voices uncomfortable; would rather type",
+    text: "Can I just type to you instead of talking?" },
+  { label: "Overwhelmed for weeks", emotion: "sad", note: "possible distress: should reach a human",
+    text: "I've felt overwhelmed for weeks and I've stopped going to class." },
+];
+
+function addMsg(kind, who, text, extra = "") {
+  const div = document.createElement("div");
+  div.className = `msg ${kind} ${extra}`;
+  if (who) { const w = document.createElement("span"); w.className = "who"; w.textContent = who; div.appendChild(w); }
+  div.appendChild(document.createTextNode(text));
+  const t = $("transcript");
+  const atBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 60;
+  t.appendChild(div);
+  if (atBottom) t.scrollTop = t.scrollHeight;
+}
+
+function logLine(text) {
+  const l = $("log"); l.textContent += text + "\n";
+  if (l.textContent.length > 60000) l.textContent = l.textContent.slice(-40000);
+  l.scrollTop = l.scrollHeight;
+}
+
+function speak(text, rate) {
+  if (!$("voice").checked || !("speechSynthesis" in window) || !text || text.startsWith("[")) return;
+  const u = new SpeechSynthesisUtterance(text); u.rate = rate || 1.0; speechSynthesis.speak(u);
+}
+
+let lastLLMSource = null;
+function handleEvent(e) {
+  switch (e.kind) {
+    case "say":
+      addMsg("robot", lastLLMSource === "wizard" ? "Robot (wizard-written)" : "Robot", e.text || "",
+             lastLLMSource === "wizard" ? "wizard" : "");
+      lastLLMSource = null; speak(e.text, e.rate); break;
+    case "listening":
+      $("listen-hint").textContent = "The robot is listening: type the student's reply." +
+        (e.expected_words ? `  Expected words: ${e.expected_words}` : "");
+      $("listen-hint").classList.add("active"); $("student-input").focus(); break;
+    case "heard":
+      $("listen-hint").textContent = ""; $("listen-hint").classList.remove("active");
+      if (e.silent) addMsg("system", "", "(student stayed silent)"); break;
+    case "llm":
+      lastLLMSource = e.source;
+      if (e.source === "error") addMsg("system", "", e.reply); break;
+    case "llm_request": showWizard(e); break;
+    case "llm_answered": if (pendingLLM === e.request_id) hideWizard(); break;
+    case "gesture": addMsg("system", "", `gesture: ${e.name}${e.known === false ? " (unknown to the robot!)" : ""}`); break;
+    case "joints": drawJoints(e.joints || {}, e.released); break;
+    case "register_face": addMsg("system", "", `robot registered a face as "${e.name}"`); break;
+    case "scene": if (e.by === "robot") { loadScene(); } break;
+    case "activity_start": addMsg("system", "", `--- started ${e.name} ---`); $("log").textContent = ""; break;
+    case "activity_end":
+      addMsg("system", "", `--- ${e.name} ended (exit code ${e.code}) ---`); hideWizard();
+      $("listen-hint").textContent = ""; $("listen-hint").classList.remove("active"); break;
+    case "log": logLine(e.text); break;
+    case "notice": addMsg("system", "", `⚠ ${e.text}`); break;
+  }
+}
+
+async function pollEvents() {
+  try {
+    const r = await api(`/api/events?since=${lastEvent}`); const data = await r.json();
+    for (const e of data.events) { lastEvent = Math.max(lastEvent, e.id); handleEvent(e); }
+  } catch (err) { /* console restarting */ }
+  setTimeout(pollEvents, 350);
+}
+
+async function pollFace() {
+  try {
+    const r = await api("/api/face_state"); const d = await r.json();
+    if (d.version !== faceVersion && d.version > 0) {
+      faceVersion = d.version;
+      $("face-img").src = `/api/face_frame?v=${d.version}`; $("face-img").hidden = false; $("face-empty").hidden = true;
+    }
+    $("listen-badge").style.display = d.state && d.state.listening === "True" ? "block" : "none";
+  } catch (err) {}
+  setTimeout(pollFace, 200);
+}
+
+async function pollStatus() {
+  try {
+    const d = await (await api("/api/status")).json();
+    $("status").textContent = d.running ? `running: ${d.activity}` : "idle";
+    $("status").classList.toggle("running", d.running);
+  } catch (err) { $("status").textContent = "console offline"; }
+  setTimeout(pollStatus, 1500);
+}
+
+function showWizard(e) {
+  pendingLLM = e.request_id;
+  $("wizard-prompt").textContent = (e.messages || []).map(m => `[${m.role}]\n${m.content}`).join("\n\n");
+  $("wizard").style.display = "block"; $("wizard-reply").focus();
+}
+function hideWizard() { pendingLLM = null; $("wizard").style.display = "none"; $("wizard-reply").value = ""; }
+
+$("wizard-send").onclick = async () => {
+  if (!pendingLLM) return;
+  await api("/api/llm/reply", { method: "POST", body: JSON.stringify({ id: pendingLLM, reply: $("wizard-reply").value }) });
+  hideWizard();
+};
+
+async function sendStudent(text) {
+  await api("/api/input", { method: "POST", body: JSON.stringify({ text }) });
+  if (text) addMsg("student", "Student (typed by tester)", text); else addMsg("system", "", "(tester chose: stay silent)");
+  $("student-input").value = "";
+}
+$("send-btn").onclick = () => { const t = $("student-input").value.trim(); if (t) sendStudent(t); };
+$("student-input").addEventListener("keydown", (ev) => { if (ev.key === "Enter") $("send-btn").click(); });
+$("silent-btn").onclick = () => sendStudent("");
+
+// --- joints ---------------------------------------------------------------
+function drawJoints(j, released) {
+  const rows = JOINTS.map(name => {
+    const v = Number(j[name] || 0);
+    const left = v < 0 ? 50 + v * 50 : 50, width = Math.abs(v) * 50;
+    return `<div class="joint-row"><span>${name.replace("_", " ")}</span><div class="bar"><span style="left:${left}%;width:${width}%"></span></div><span>${v.toFixed(2)}</span></div>`;
+  });
+  $("joints").innerHTML = rows.join("") + (released ? `<p class="note">servos released (no holding torque)</p>` : "");
+  // Front view: robot's right arm is on the viewer's left.
+  const deg = Math.PI / 180, cx = 100;
+  // Arm hangs straight down at 0; positive shoulder raises it outward, elbow bends further.
+  const arm = (sx, side, sh, el) => {
+    const s = sh * 80 * deg, e = (sh * 80 + el * 60) * deg;
+    const ex = sx + side * Math.sin(s) * 28, ey = 70 + Math.cos(s) * 28;
+    const hx = ex + side * Math.sin(e) * 24, hy = ey + Math.cos(e) * 24;
+    return `<polyline points="${sx},70 ${ex},${ey} ${hx},${hy}" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`;
+  };
+  const torso = Number(j.torso || 0), neck = Number(j.neck || 0);
+  const dial = (x, label, v) => `<g transform="translate(${x},128)"><circle r="14" fill="none" stroke="currentColor" opacity=".35"/>` +
+    `<line x1="0" y1="0" x2="${Math.sin(v * 90 * deg) * 14}" y2="${-Math.cos(v * 90 * deg) * 14}" stroke="currentColor" stroke-width="2"/>` +
+    `<text y="24" font-size="8" text-anchor="middle" fill="currentColor">${label}</text></g>`;
+  $("body").innerHTML =
+    `<rect x="${cx - 22}" y="62" width="44" height="50" rx="8" fill="none" stroke="currentColor" stroke-width="3"/>` +
+    `<rect x="${cx - 18 - neck * 6}" y="22" width="36" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="3"/>` +
+    `<circle cx="${cx - 7 - neck * 8}" cy="38" r="2.5" fill="currentColor"/><circle cx="${cx + 7 - neck * 8}" cy="38" r="2.5" fill="currentColor"/>` +
+    arm(cx - 24, -1, Number(j.right_shoulder || 0), Number(j.right_elbow || 0)) +
+    arm(cx + 24, 1, -Number(j.left_shoulder || 0), -Number(j.left_elbow || 0)) +
+    `<text x="${cx - 46}" y="64" font-size="8" fill="currentColor">R</text><text x="${cx + 42}" y="64" font-size="8" fill="currentColor">L</text>` +
+    dial(30, "torso yaw", torso) + dial(170, "neck yaw", neck);
+}
+drawJoints({}, false);
+
+// --- room / scene -----------------------------------------------------------
+async function loadScene() { scene = await (await api("/api/scene")).json(); renderPeople(); }
+async function saveScene() { await api("/api/scene", { method: "PUT", body: JSON.stringify(scene) }); }
+
+function renderPeople() {
+  const box = $("people"); box.innerHTML = "";
+  scene.people.forEach((p, i) => {
+    const d = document.createElement("div"); d.className = "person";
+    d.innerHTML = `
+      <label>Name<input type="text" data-k="name"></label>
+      <label>Present<select data-k="present"><option value="true">in view</option><option value="false">away</option></select></label>
+      <label>Emotion<select data-k="emotion">${EMOTIONS.map(x => `<option>${x}</option>`).join("")}</select></label>
+      <label>Gesture<select data-k="gesture">${GESTURES.map(x => `<option>${x}</option>`).join("")}</select></label>
+      <label class="full">Position (left ↔ right of the camera)<input type="range" min="0" max="1" step="0.05" data-k="x"></label>
+      <label class="full">Tester note (not sent to the robot)<input type="text" data-k="note"></label>
+      <button class="secondary full" data-remove>Remove</button>`;
+    d.querySelectorAll("[data-k]").forEach(el => {
+      const k = el.dataset.k; el.value = String(p[k]);
+      el.addEventListener("change", () => {
+        p[k] = k === "present" ? el.value === "true" : k === "x" ? Number(el.value) : el.value; saveScene();
+      });
+    });
+    d.querySelector("[data-remove]").onclick = () => { scene.people.splice(i, 1); renderPeople(); saveScene(); };
+    box.appendChild(d);
+  });
+}
+$("add-person").onclick = () => {
+  const id = Math.max(0, ...scene.people.map(p => p.id)) + 1;
+  scene.people.push({ id, name: "Unknown", present: true, x: 0.3, emotion: "neutral", gesture: "Unknown", note: "" });
+  renderPeople(); saveScene();
+};
+
+PRESETS.forEach(pr => {
+  const b = document.createElement("button"); b.className = "secondary"; b.textContent = pr.label;
+  b.onclick = () => {
+    if (!scene.people.length) scene.people.push({ id: 1, name: "Alex", present: true, x: 0.5, gesture: "Unknown" });
+    Object.assign(scene.people[0], { present: true, emotion: pr.emotion, note: pr.note });
+    renderPeople(); saveScene();
+    $("student-input").value = pr.text; $("student-input").focus();
+  };
+  $("presets").appendChild(b);
+});
+
+// --- activities -----------------------------------------------------------
+async function loadActivities() {
+  const d = await (await api("/api/activities")).json();
+  const sel = $("activity"); sel.innerHTML = "";
+  const group = (label, items) => {
+    if (!items.length) return;
+    const g = document.createElement("optgroup"); g.label = label;
+    items.forEach(it => { const o = document.createElement("option"); o.value = it.target; o.textContent = it.label + (it.group ? ` (${it.group})` : ""); g.appendChild(o); });
+    sel.appendChild(g);
+  };
+  group("LIMA check-ins", d.mentor_checkins || []); group("Sandbox", d.sandbox); group("Activities", d.core);
+  group("Activity plans", d.activity_plans); group("Custom interactions", d.custom_interactions);
+}
+$("run-btn").onclick = async () => {
+  const r = await api("/api/run", { method: "POST", body: JSON.stringify({
+    target: $("activity").value, llm_mode: $("llm-mode").value, speech_mode: $("speech-mode").value }) });
+  if (!r.ok) alert((await r.json()).error || "Could not start");
+};
+$("stop-btn").onclick = () => api("/api/stop", { method: "POST" });
+$("export-btn").onclick = () => { window.location = "/api/transcript"; };
+$("clear-btn").onclick = async () => { await api("/api/reset", { method: "POST" }); $("transcript").innerHTML = ""; $("log").textContent = ""; lastEvent = 0; };
+
+loadActivities(); loadScene(); pollEvents(); pollFace(); pollStatus();
+</script>
+</body>
+</html>

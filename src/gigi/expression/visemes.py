@@ -8,6 +8,7 @@ import threading
 import re
 from typing import Optional, Dict, Any, List
 
+from gigi.core.config import DEFAULT_FACE
 from gigi.expression.face_display import Face
 from gigi.expression.speech import Speech
 
@@ -17,7 +18,7 @@ class Viseme:
     Coordinates simultaneous audio playback and mouth viseme animations.
     """
 
-    def __init__(self, face: Optional[Face] = None, speech: Optional[Speech] = None, character_name: str = "fuzzy"):
+    def __init__(self, face: Optional[Face] = None, speech: Optional[Speech] = None, character_name: str = DEFAULT_FACE):
         self.face = face if face is not None else Face(character=character_name, full_screen=True)
         self.speech = speech if speech is not None else Speech()
         self.sync_offset = 0.0

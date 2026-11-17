@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<h1>Students</h1>
+<p class="muted">{{ 'Your mentees and students without a mentor.' if user.role == 'mentor' else 'All students LIMA has met.' }}</p>
+<div class="card">
+<table>
+  <tr><th>Name</th><th>Classes</th><th>Hobbies</th><th>Last seen</th></tr>
+  {% for s in students %}
+  <tr><td><a href="{{ url_for('student', student_id=s.id) }}">{{ s.preferred_name }}</a>{% if s.pronouns %} <span class="muted">({{ s.pronouns }})</span>{% endif %}</td>
+      <td>{{ (s.profile.classes or [])|join(', ') }}</td><td>{{ (s.profile.hobbies or [])|join(', ') }}</td>
+      <td>{{ fmt_time(s.last_seen) }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">No students yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}
